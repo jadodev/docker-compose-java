@@ -2,42 +2,29 @@ version: '3.8'
 
 services:
   mysql:
-    image: mysql:8.0
-    container_name: mysql_db
+    image: mysql:8
+    container_name: mysql_container
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: clients
-      MYSQL_USER: root
-      MYSQL_PASSWORD: root
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - backend
+      - ./mysql.sql:/docker-entrypoint-initdb.d/init.sql
 
   api:
-    image: mi-api-java:latest
-    container_name: api_service
+    build: 
+      context: ../template-hexagonal-arch 
+      dockerfile: Dockerfile
+    container_name: java_api
+    restart: always
     depends_on:
       - mysql
-    environment:
-      SPRING_APPLICATION_NAME: demo
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/clients
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
-      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.MySQL8Dialect
+    entrypoint: ["/bin/sh", "-c", "./wait-for-it.sh mysql:3306 -- java -jar app.jar"]
     ports:
       - "8080:8080"
-    networks:
-      - backend
 
 volumes:
   mysql_data:
-
-networks:
-  backend:
